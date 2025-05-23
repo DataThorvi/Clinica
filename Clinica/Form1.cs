@@ -10,12 +10,17 @@ namespace Clinica
     public partial class Form1 : Form
     {
         private readonly string connectionString = @"Server=localhost;Database=ClinicRegistryDB;Trusted_Connection=True;TrustServerCertificate=True;";
+        private readonly string templatePath = @"C:\Users\babes\Downloads\Template.docx";
+        private string userRole;
 
-        public Form1()
+        public Form1(string role)
         {
             InitializeComponent();
+            userRole = role;
 
-           
+            ApplyRoleRestrictions();
+
+            
             textBox1.TextChanged += (s, e) => LoadPatients(textBox1.Text);
             textBox2.TextChanged += (s, e) => LoadDoctors(textBox2.Text);
             textBox3.TextChanged += (s, e) => LoadServices(textBox3.Text);
@@ -27,10 +32,46 @@ namespace Clinica
             LoadMedicalRecords();
             LoadDispensaryObservations();
 
+           
             dataGridView1.SelectionChanged += DataGridView1_SelectionChanged;
 
-           
             LoadPatients1();
+        }
+
+        private void ApplyRoleRestrictions()
+        {
+            switch (userRole)
+            {
+                case "Врач":
+                    dataGridView6.Enabled = false;  
+                    dataGridView1.ReadOnly = true;  
+                    button3.Enabled = false;        
+                    button1.Enabled = true;
+                    button2.Enabled = true;
+                    break;
+
+                case "Регистратор":
+                    dataGridView8.Visible = false;  
+                    dataGridView9.Visible = false;
+                    button4.Enabled = false;
+                   
+                    break;
+
+                case "Администратор":
+                    dataGridView6.Enabled = true;
+                    dataGridView1.ReadOnly = false;
+                    dataGridView8.Visible = true;
+                    dataGridView9.Visible = true;
+                    button1.Enabled = true;
+                    button2.Enabled = true;
+                    button3.Enabled = true;
+                    break;
+
+                default:
+                    MessageBox.Show("Неизвестная роль. Доступ запрещён.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    this.Enabled = false;
+                    break;
+            }
         }
 
         private void LoadPatients1(string filter = "")
@@ -39,53 +80,58 @@ namespace Clinica
                 SELECT PatientID, LastName, FirstName, MiddleName, BirthDate 
                 FROM Patients";
 
-            if (!string.IsNullOrEmpty(filter))
+            if (!string.IsNullOrWhiteSpace(filter))
                 query += " WHERE LastName LIKE @filter OR FirstName LIKE @filter OR MiddleName LIKE @filter";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                if (!string.IsNullOrEmpty(filter))
-                    cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (!string.IsNullOrWhiteSpace(filter))
+                        cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
 
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
 
-                dataGridView10.DataSource = dt;
-
-                
-                dataGridView10.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-
-              
-                dataGridView10.Enabled = true;
-                dataGridView10.ReadOnly = false;
-
-               
-                if (dataGridView10.Parent != null)
-                    dataGridView10.Parent.Enabled = true;
+                    dataGridView10.DataSource = dt;
+                    dataGridView10.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+                    dataGridView10.ReadOnly = false;
+                    dataGridView10.Enabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки пациентов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void LoadPatients(string filter = "")
         {
             string query = "SELECT PatientID, LastName, FirstName, MiddleName, BirthDate FROM Patients";
-            if (!string.IsNullOrEmpty(filter))
+            if (!string.IsNullOrWhiteSpace(filter))
                 query += " WHERE LastName LIKE @filter OR FirstName LIKE @filter OR MiddleName LIKE @filter";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                if (!string.IsNullOrEmpty(filter))
-                    cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (!string.IsNullOrWhiteSpace(filter))
+                        cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
 
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView1.DataSource = dt;
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView1.DataSource = dt;
+                }
+                dataGridView2.DataSource = null;
             }
-
-            dataGridView2.DataSource = null;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки пациентов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void DataGridView1_SelectionChanged(object sender, EventArgs e)
@@ -110,70 +156,96 @@ namespace Clinica
         {
             string query = "SELECT AppointmentID, PatientID, DoctorID, ServiceID, AppointmentDate, AppointmentTime, Diagnosis FROM Appointments WHERE PatientID = @patientId";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                cmd.Parameters.AddWithValue("@patientId", patientId);
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView2.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@patientId", patientId);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView2.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки приёмов пациента: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void LoadDoctors(string filter = "")
         {
             string query = "SELECT DoctorID, LastName, FirstName, MiddleName, Specialization FROM Doctors";
-            if (!string.IsNullOrEmpty(filter))
+            if (!string.IsNullOrWhiteSpace(filter))
                 query += " WHERE LastName LIKE @filter OR FirstName LIKE @filter OR MiddleName LIKE @filter";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                if (!string.IsNullOrEmpty(filter))
-                    cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (!string.IsNullOrWhiteSpace(filter))
+                        cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
 
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView4.DataSource = dt;
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView4.DataSource = dt;
+                }
+                dataGridView3.DataSource = null;
             }
-
-            dataGridView3.DataSource = null;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки врачей: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void LoadServices(string filter = "")
         {
             string query = "SELECT ServiceID, ServiceName, Cost FROM Services";
-            if (!string.IsNullOrEmpty(filter))
+            if (!string.IsNullOrWhiteSpace(filter))
                 query += " WHERE ServiceName LIKE @filter";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                if (!string.IsNullOrEmpty(filter))
-                    cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (!string.IsNullOrWhiteSpace(filter))
+                        cmd.Parameters.AddWithValue("@filter", $"%{filter}%");
 
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView6.DataSource = dt;
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView6.DataSource = dt;
+                }
+                dataGridView5.DataSource = null;
             }
-
-            dataGridView5.DataSource = null;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки услуг: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void LoadAppointments()
         {
             string query = "SELECT AppointmentID, PatientID, DoctorID, ServiceID, AppointmentDate, AppointmentTime, Diagnosis FROM Appointments";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView7.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView7.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки приёмов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -181,13 +253,20 @@ namespace Clinica
         {
             string query = "SELECT RecordID, PatientID, DoctorID, Diagnosis, Treatment, RecordDate FROM MedicalRecords";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView8.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView8.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки медицинских записей: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -195,13 +274,20 @@ namespace Clinica
         {
             string query = "SELECT ObservationID, PatientID, DoctorID, StartDate, EndDate, Diagnosis FROM DispensaryObservations";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView9.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView9.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки диспансерного наблюдения: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -209,15 +295,20 @@ namespace Clinica
         {
             string query = "SELECT * FROM vw_PatientsLastAppointment";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-
-                adapter.Fill(dt);
-
-                dataGridView2.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView2.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -225,15 +316,20 @@ namespace Clinica
         {
             string query = "SELECT * FROM View_PatientAppointments";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-
-                adapter.Fill(dt);
-
-                dataGridView2.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView2.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -241,13 +337,20 @@ namespace Clinica
         {
             string query = "SELECT * FROM vw_ServiceDeals";
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            try
             {
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
-                dataGridView5.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    dataGridView5.DataSource = dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -349,6 +452,8 @@ namespace Clinica
                 });
             }
         }
+
+
 
         private void button4_Click(object sender, EventArgs e)
         {

@@ -67,6 +67,7 @@
             dataGridView10 = new DataGridView();
             button4 = new Button();
             sqlCommand1 = new Microsoft.Data.SqlClient.SqlCommand();
+            sqlCommand2 = new Microsoft.Data.SqlClient.SqlCommand();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView2).BeginInit();
@@ -472,8 +473,9 @@
             // 
             // dataGridView10
             // 
+            dataGridView10.BackgroundColor = Color.PaleGreen;
             dataGridView10.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView10.Location = new Point(94, 83);
+            dataGridView10.Location = new Point(111, 85);
             dataGridView10.Name = "dataGridView10";
             dataGridView10.RowHeadersWidth = 51;
             dataGridView10.Size = new Size(642, 342);
@@ -493,6 +495,11 @@
             // 
             sqlCommand1.CommandTimeout = 30;
             sqlCommand1.EnableOptimizedParameterBinding = false;
+            // 
+            // sqlCommand2
+            // 
+            sqlCommand2.CommandTimeout = 30;
+            sqlCommand2.EnableOptimizedParameterBinding = false;
             // 
             // Form1
             // 
@@ -570,5 +577,6 @@
         private Button button3;
         private Button button4;
         private DataGridView dataGridView10;
+        private Microsoft.Data.SqlClient.SqlCommand sqlCommand2;
     }
 }
